@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-mariadb
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    # Path dentro del nodo kind donde crearemos los datos
+    path: /data/mariadb
+    type: DirectoryOrCreate
+  persistentVolumeReclaimPolicy: Retain

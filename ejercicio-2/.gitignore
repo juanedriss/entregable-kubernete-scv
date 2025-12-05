@@ -1,0 +1,7 @@
+# Ignorar datos locales y ficheros de estado
+*.tfstate
+*.tfstate.*
+.terraform/
+.vscode/
+data/
+.kube/

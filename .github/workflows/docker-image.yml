@@ -1,0 +1,28 @@
+name: Build and push Matomo image
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build the image
+      run: |
+        docker build -t juanedriss/matomo-custom:latest ./ejercicio-2/matomo
+
+    - name: Push the image
+      run: |
+        docker push juanedriss/matomo-custom:latest

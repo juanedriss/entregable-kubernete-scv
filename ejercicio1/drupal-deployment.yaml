@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drupal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drupal
+  template:
+    metadata:
+      labels:
+        app: drupal
+    spec:
+      initContainers:
+        - name: init-sites-volume
+          image: drupal:latest
+          command:
+            - sh
+            - -c
+            - |
+              if [ ! -f /data/default/settings.php ]; then
+                echo "Copiando archivos de configuración inicial..."
+                cp -r /var/www/html/sites/* /data/
+                echo "Configurando permisos..."
+                chmod -R 755 /data
+                chown -R www-data:www-data /data
+                mkdir -p /data/default/files
+                chmod -R 777 /data/default/files
+                cp /data/default/default.settings.php /data/default/settings.php
+                chmod 666 /data/default/settings.php
+              else
+                echo "Los archivos ya existen, ajustando permisos..."
+                chmod -R 755 /data
+                chown -R www-data:www-data /data
+                chmod -R 777 /data/default/files
+                chmod 666 /data/default/settings.php
+              fi
+          volumeMounts:
+            - name: drupal-sites
+              mountPath: /data
+      containers:
+        - name: drupal
+          image: drupal:latest
+          ports:
+            - containerPort: 80
+              name: http
+          volumeMounts:
+            - name: drupal-sites
+              mountPath: /var/www/html/sites
+      volumes:
+        - name: drupal-sites
+          persistentVolumeClaim:
+            claimName: drupal-pvc

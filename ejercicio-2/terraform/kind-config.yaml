@@ -1,9 +1,10 @@
-kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
+kind: Cluster
 
 nodes:
   - role: control-plane
     extraPortMappings:
-      - containerPort: 30081
-        hostPort: 8081
+      # Exponer el servicio interno 30081 en el puerto 8081 del host
+      - hostPort: 8081
+        containerPort: 30081
         protocol: TCP

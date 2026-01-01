@@ -1,29 +1,19 @@
 variable "cluster_name" {
-  type    = string
   default = "matomo-kind"
 }
 
-variable "matomo_port_host" {
-  type    = number
-  default = 8081
+variable "db_name" {
+  description = "Nombre de la base de datos"
 }
 
-variable "mariadb_root_password" {
-  type    = string
-  default = "mariadb_root_pass"
+variable "db_user" {
+  description = "Usuario MariaDB"
 }
 
-variable "mariadb_database" {
-  type    = string
-  default = "matomo"
+variable "db_password" {
+  description = "Password MariaDB"
 }
 
-variable "mariadb_user" {
-  type    = string
-  default = "matomo"
-}
-
-variable "mariadb_password" {
-  type    = string
-  default = "matomo_pass"
+variable "matomo_image" {
+  description = "Imagen personalizada de Matomo"
 }

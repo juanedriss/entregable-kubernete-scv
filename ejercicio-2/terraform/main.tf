@@ -1,23 +1,168 @@
-resource "null_resource" "create_kind" {
-  provisioner "local-exec" {
-    command = <<EOT
-      Write-Host "=== Creando directorios de datos ==="
-      mkdir -Force "..\\data\\mariadb" | Out-Null
-      mkdir -Force "..\\data\\matomo" | Out-Null
+terraform {
+  required_providers {
+    kind = {
+      source  = "tehcyx/kind"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+    }
+  }
+}
 
-      Write-Host "=== Comprobando clusters kind existentes ==="
-      $clusters = kind get clusters
+provider "kind" {}
 
-      if ($clusters -eq $null -or $clusters -eq "" -or $clusters -match "No kind clusters found") {
-        Write-Host "=== Creando cluster kind 'matomo-kind' ==="
-        kind create cluster --name matomo-kind --config "..\\terraform\\kind-config.yaml" --wait 60s
-      } else {
-        Write-Host "Cluster matomo-kind ya existe"
+resource "kind_cluster" "this" {
+  name           = var.cluster_name
+  config_path    = "${path.module}/kind-config.yaml"
+  wait_for_ready = true
+}
+
+provider "kubernetes" {
+  config_path = kind_cluster.this.kubeconfig_path
+}
+
+resource "kubernetes_persistent_volume" "mariadb" {
+  metadata { name = "pv-mariadb" }
+
+  spec {
+    capacity = { storage = "2Gi" }
+    access_modes = ["ReadWriteOnce"]
+    persistent_volume_reclaim_policy = "Retain"
+
+    host_path { path = "/kind/data/mariadb" }
+  }
+}
+
+resource "kubernetes_persistent_volume_claim" "mariadb" {
+  metadata { name = "pvc-mariadb" }
+
+  spec {
+    access_modes = ["ReadWriteOnce"]
+    resources {
+      requests = { storage = "2Gi" }
+    }
+    volume_name = kubernetes_persistent_volume.mariadb.metadata[0].name
+  }
+}
+
+resource "kubernetes_deployment" "mariadb" {
+  metadata { name = "mariadb" }
+
+  spec {
+    replicas = 1
+
+    selector {
+      match_labels = { app = "mariadb" }
+    }
+
+    template {
+      metadata { labels = { app = "mariadb" } }
+
+      spec {
+        container {
+          name  = "mariadb"
+          image = "mariadb:10.6"
+
+          env {
+            name  = "MYSQL_DATABASE"
+            value = var.db_name
+          }
+          env {
+            name  = "MYSQL_USER"
+            value = var.db_user
+          }
+          env {
+            name  = "MYSQL_PASSWORD"
+            value = var.db_password
+          }
+          env {
+            name  = "MYSQL_ROOT_PASSWORD"
+            value = "rootpass"
+          }
+
+          volume_mount {
+            name       = "data"
+            mount_path = "/var/lib/mysql"
+          }
+        }
+
+        volume {
+          name = "data"
+          persistent_volume_claim {
+            claim_name = kubernetes_persistent_volume_claim.mariadb.metadata[0].name
+          }
+        }
       }
+    }
+  }
+}
 
-      Write-Host "=== Mostrando información del cluster ==="
-      kubectl cluster-info --context kind-matomo-kind
-    EOT
-    interpreter = ["PowerShell", "-Command"]
+resource "kubernetes_deployment" "matomo" {
+  metadata { name = "matomo" }
+
+  spec {
+    replicas = 1
+
+    selector {
+      match_labels = { app = "matomo" }
+    }
+
+    template {
+      metadata { labels = { app = "matomo" } }
+
+      spec {
+        container {
+          name  = "matomo"
+          image = var.matomo_image
+
+          env {
+            name  = "MATOMO_DATABASE_HOST"
+            value = "mariadb"
+          }
+          env {
+            name  = "MATOMO_DATABASE_USERNAME"
+            value = var.db_user
+          }
+          env {
+            name  = "MATOMO_DATABASE_PASSWORD"
+            value = var.db_password
+          }
+          env {
+            name  = "MATOMO_DATABASE_DBNAME"
+            value = var.db_name
+          }
+
+          port { container_port = 80 }
+
+          volume_mount {
+            name       = "data"
+            mount_path = "/var/www/html"
+          }
+        }
+
+        volume {
+          name = "data"
+          persistent_volume_claim {
+            claim_name = kubernetes_persistent_volume_claim.matomo.metadata[0].name
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service" "matomo" {
+  metadata { name = "matomo" }
+
+  spec {
+    type = "NodePort"
+
+    selector = { app = "matomo" }
+
+    port {
+      port        = 80
+      target_port = 80
+      node_port   = 30081
+    }
   }
 }

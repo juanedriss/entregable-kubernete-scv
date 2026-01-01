@@ -1,4 +1,4 @@
-name: Build and push Matomo image
+name: Build and publish custom Matomo image
 
 on:
   push:
@@ -6,23 +6,25 @@ on:
       - master
 
 jobs:
-  build-and-push:
+  publish-image:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: Checkout source code
       uses: actions/checkout@v4
 
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v2
+    - name: Authenticate with Docker Hub
+      uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build the image
+    - name: Build custom Matomo image
       run: |
-        docker build -t juanedriss/matomo-custom:latest ./ejercicio-2/matomo
+        docker build \
+          -t ${{ secrets.DOCKERHUB_USERNAME }}/matomo-custom:latest \
+          .ejercicio-2/matomo
 
-    - name: Push the image
+    - name: Push image to Docker Hub
       run: |
-        docker push juanedriss/matomo-custom:latest
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/matomo-custom:latest

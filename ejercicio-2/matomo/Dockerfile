@@ -1,12 +1,9 @@
-# Imagen base de Matomo (versión estable con Apache)
-FROM matomo:5.5-apache
+FROM matomo:latest
 
-# Crear el fichero personalizado de configuración PHP
-RUN echo "php_admin_value[memory_limit] = 512M" > /usr/local/etc/php/conf.d/zzz-matomo.ini \
-    && echo "upload_max_filesize = 512M" >> /usr/local/etc/php/conf.d/zzz-matomo.ini \
-    && echo "post_max_size = 512M" >> /usr/local/etc/php/conf.d/zzz-matomo.ini
+ENV PHP_MEMORY_LIMIT=512M
+ENV PHP_UPLOAD_MAX_FILESIZE=512M
+ENV PHP_POST_MAX_SIZE=512M
 
-# Exponer el puerto por defecto
-EXPOSE 80
-
-# Mantener el entrypoint original del contenedor Matomo
+RUN echo "memory_limit=512M" > /usr/local/etc/php/conf.d/zzz-matomo.ini \
+ && echo "upload_max_filesize=512M" >> /usr/local/etc/php/conf.d/zzz-matomo.ini \
+ && echo "post_max_size=512M" >> /usr/local/etc/php/conf.d/zzz-matomo.ini

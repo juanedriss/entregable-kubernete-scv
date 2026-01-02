@@ -76,7 +76,7 @@ resource "kubernetes_persistent_volume" "mariadb_storage" {
 
     persistent_volume_source {
       host_path {
-        path = "C:\\data\\mariadb"
+        path = "/Users/juane/k8s/mariadb"
       }
     }
   }
@@ -135,7 +135,7 @@ resource "kubernetes_persistent_volume" "matomo_storage" {
 
     persistent_volume_source {
       host_path {
-        path = "C:\\data\\matomo"
+        path = "/Users/juane/k8s/matomo"
       }
     }
   }
